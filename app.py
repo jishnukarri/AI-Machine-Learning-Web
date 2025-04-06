@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 
 # Load the model (local path or URL)
-model_url = 'https://raw.githubusercontent.com/jishnukarri/AI-Machine-Learning-Web/refs/heads/main/small-model/model.json'
+model_url = 'https://github.com/jishnukarri/AI-Machine-Learning-Web/raw/refs/heads/main/model_tfjs/model.json'
 model = load_model(model_url)
 
 # Function to process the image and make a prediction
