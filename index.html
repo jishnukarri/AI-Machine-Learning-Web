@@ -26,7 +26,7 @@
 
 <body>
   <h1>Ocean Cleanup AI</h1>
-  <p>Upload an image to classify it as "Garbage" or "Marine Life":</p>
+  <p>Upload an image to classify it as "Garbaage" or "Marine Life":</p>
   <input type="file" id="upload" accept="image/*" />
   <br>
   <img id="preview" alt="Preview" style="display:none;" />
@@ -38,7 +38,7 @@
     // Load the TensorFlow.js model
     async function loadModel() {
       try {
-        model = await tf.loadLayersModel('small-model/model.json');
+        model = await tf.loadLayersModel('model-new/model.json');
         console.log('Model loaded successfully!');
       } catch (error) {
         console.error('Error loading model:', error);
@@ -51,15 +51,24 @@
       img.src = URL.createObjectURL(file);
       img.onload = async () => {
         try {
+          if (!model) {
+            console.error('Model is not loaded yet.');
+            return;
+          }
+
           // Preprocess the image
           const tensor = tf.browser.fromPixels(img)
-            .resizeNearestNeighbor([150, 150]) // Resize to match model input size
-            .toFloat()
-            .div(255.0) // Normalize pixel values
-            .expandDims(); // Add batch dimension
+              .resizeNearestNeighbor([224, 224]) // Resize to match model input size
+              .toFloat()
+              .div(255.0) // Normalize pixel values
+              .expandDims(); // Add batch dimension
+
+          console.log('Tensor shape:', tensor.shape); // Should be [1, 224, 224, 3]
 
           // Make predictions
           const predictions = await model.predict(tensor).data();
+          console.log('Predictions:', predictions);
+
           const result = predictions[0] > 0.5 ? 'Garbage' : 'Marine Life';
           document.getElementById('result').innerText = result;
         } catch (error) {
