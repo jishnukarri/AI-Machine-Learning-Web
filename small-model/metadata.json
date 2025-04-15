@@ -1,1 +1,1 @@
-{"tfjsVersion":"1.7.4","tmVersion":"2.4.10","packageVersion":"0.8.4-alpha2","packageName":"@teachablemachine/image","timeStamp":"2025-04-05T23:03:34.124Z","userMetadata":{},"modelName":"tm-my-image-model","labels":["Garbage","Marine Life"],"imageSize":224}
+{"tfjsVersion":"1.7.4","tmVersion":"2.4.10","packageVersion":"0.8.4-alpha2","packageName":"@teachablemachine/image","timeStamp":"2025-04-15T23:30:05.173Z","userMetadata":{},"modelName":"My image model","labels":["Garbage","MarineLife"],"imageSize":224}
