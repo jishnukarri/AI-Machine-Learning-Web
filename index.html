@@ -32,7 +32,21 @@
 
   <script>
     let model;
-    let images = [];
+    let images = [
+      'images/download (2).jpg',
+      'images/download.jpg',
+      'images/DSC02626-scaled.jpg',
+      'images/gilthead-bream-Bristol-Aquarium6.jpg.jpg',
+      'images/images (1).jpg',
+      'images/images (3).jpg',
+      'images/images (5).jpg',
+      'images/OceanBotOne.jpeg',
+      'images/OceanBotThree.jpg',
+      'images/Screenshot 2025-04-04 131722.png',
+      'images/sddefault.jpg',
+      'images/shorebird-in-polluted-water.jpg',
+      'images/Yellowfin-Horse-Mackerel.jpg'
+    ];
     let currentIndex = 0;
 
     // Load the TensorFlow.js model
@@ -43,20 +57,6 @@
       } catch (error) {
         console.error('Error loading model:', error);
       }
-    }
-
-    // Load all images from the 'images/' folder dynamically
-    async function loadImages() {
-      const imageDir = 'images/';
-      const response = await fetch(imageDir);
-      const text = await response.text();
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(text, 'text/html');
-      const links = Array.from(doc.querySelectorAll('a'))
-        .map(a => a.href)
-        .filter(href => /\.(jpg|jpeg|png)$/i.test(href));
-      images = links;
-      showImage(currentIndex);
     }
 
     // Display the current image
@@ -110,10 +110,10 @@
       showImage(currentIndex);
     });
 
-    // Load the model and images when the page loads
+    // Load the model and display the first image when the page loads
     window.onload = async () => {
       await loadModel();
-      await loadImages();
+      showImage(currentIndex);
     };
   </script>
 </body>
