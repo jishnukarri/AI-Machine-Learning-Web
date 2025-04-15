@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocean Cleanup AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+
+    input[type="file"] {
+      margin-bottom: 20px;
+    }
+
+    img {
+      max-width: 300px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Ocean Cleanup AI</h1>
+  <p>Upload an image to classify it as "Garbage" or "Marine Life":</p>
+  <input type="file" id="upload" accept="image/*" />
+  <br>
+  <img id="preview" alt="Preview" style="display:none;" />
+  <p>Prediction: <span id="result">Waiting for input...</span></p>
+
+  <script>
+    let model;
+
+    // Load the TensorFlow.js model
+    async function loadModel() {
+      try {
+        model = await tf.loadLayersModel('model_tfjs/model.json');
+        console.log('Model loaded successfully!');
+      } catch (error) {
+        console.error('Error loading model:', error);
+      }
+    }
+
+    // Preprocess and predict the uploaded image
+    async function predict(file) {
+      const img = document.getElementById('preview');
+      img.src = URL.createObjectURL(file);
+      img.onload = async () => {
+        try {
+          // Preprocess the image
+          const tensor = tf.browser.fromPixels(img)
+            .resizeNearestNeighbor([150, 150]) // Resize to match model input size
+            .toFloat()
+            .div(255.0) // Normalize pixel values
+            .expandDims(); // Add batch dimension
+
+          // Make predictions
+          const predictions = await model.predict(tensor).data();
+          const result = predictions[0] > 0.5 ? 'Garbage' : 'Marine Life';
+          document.getElementById('result').innerText = result;
+        } catch (error) {
+          console.error('Error during prediction:', error);
+        }
+      };
+      img.style.display = 'block'; // Show the uploaded image
+    }
+
+    // Listen for file uploads
+    document.getElementById('upload').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) predict(file);
+    });
+
+    // Load the model when the page loads
+    loadModel();
+  </script>
+</body>
+
+</html>
