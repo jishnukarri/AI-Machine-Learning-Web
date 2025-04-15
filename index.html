@@ -5,35 +5,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ocean Cleanup AI</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 50px;
-    }
-
-    input[type="file"] {
-      margin-bottom: 20px;
-    }
-
-    img {
-      max-width: 300px;
-      margin-bottom: 20px;
-    }
-  </style>
 </head>
 
 <body>
-  <h1>Ocean Cleanup AI</h1>
-  <p>Upload an image to classify it as "Garbaage" or "Marine Life":</p>
-  <input type="file" id="upload" accept="image/*" />
-  <br>
-  <img id="preview" alt="Preview" style="display:none;" />
-  <p>Prediction: <span id="result">Waiting for input...</span></p>
+  <div class="container">
+    <h1>Ocean Cleanup AI</h1>
+    <p>Classify images of ocean debris using AI-powered technology.</p>
+
+    <!-- Slideshow Section -->
+    <div class="slideshow">
+      <div class="slideshow-image">
+        <img id="current-image" src="" alt="Current Image">
+      </div>
+      <div class="slideshow-controls">
+        <button id="prev-btn">❮ Previous</button>
+        <button id="next-btn">Next ❯</button>
+      </div>
+      <div class="slideshow-result">
+        <h2>Prediction</h2>
+        <p><strong>Result:</strong> <span id="prediction-result">Waiting for input...</span></p>
+      </div>
+    </div>
+  </div>
 
   <script>
     let model;
+    let images = [];
+    let currentIndex = 0;
 
     // Load the TensorFlow.js model
     async function loadModel() {
@@ -45,10 +45,32 @@
       }
     }
 
-    // Preprocess and predict the uploaded image
-    async function predict(file) {
-      const img = document.getElementById('preview');
-      img.src = URL.createObjectURL(file);
+    // Load all images from the 'images/' folder dynamically
+    async function loadImages() {
+      const imageDir = 'images/';
+      const response = await fetch(imageDir);
+      const text = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      const links = Array.from(doc.querySelectorAll('a'))
+        .map(a => a.href)
+        .filter(href => /\.(jpg|jpeg|png)$/i.test(href));
+      images = links;
+      showImage(currentIndex);
+    }
+
+    // Display the current image
+    function showImage(index) {
+      if (index < 0 || index >= images.length) return;
+      document.getElementById('current-image').src = images[index];
+      document.getElementById('current-image').style.display = 'block';
+      predict(images[index]);
+    }
+
+    // Predict the class of the selected image
+    async function predict(imageSrc) {
+      const img = new Image();
+      img.src = imageSrc;
       img.onload = async () => {
         try {
           if (!model) {
@@ -70,22 +92,29 @@
           console.log('Predictions:', predictions);
 
           const result = predictions[0] > 0.5 ? 'Garbage' : 'Marine Life';
-          document.getElementById('result').innerText = result;
+          document.getElementById('prediction-result').innerText = result;
         } catch (error) {
           console.error('Error during prediction:', error);
         }
       };
-      img.style.display = 'block'; // Show the uploaded image
     }
 
-    // Listen for file uploads
-    document.getElementById('upload').addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      if (file) predict(file);
+    // Attach event listeners for navigation
+    document.getElementById('prev-btn').addEventListener('click', () => {
+      currentIndex = Math.max(currentIndex - 1, 0);
+      showImage(currentIndex);
     });
 
-    // Load the model when the page loads
-    loadModel();
+    document.getElementById('next-btn').addEventListener('click', () => {
+      currentIndex = Math.min(currentIndex + 1, images.length - 1);
+      showImage(currentIndex);
+    });
+
+    // Load the model and images when the page loads
+    window.onload = async () => {
+      await loadModel();
+      await loadImages();
+    };
   </script>
 </body>
 

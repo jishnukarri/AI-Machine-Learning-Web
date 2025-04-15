@@ -1,0 +1,74 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #F0F8FF; /* Light beige background */
+    color: #2C3E50; /* Dark blue text */
+    margin: 0;
+    padding: 0;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
+  }
+  
+  h1, h2 {
+    font-family: 'Montserrat', sans-serif;
+    color: #2C3E50;
+  }
+  
+  p {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+  
+  /* Slideshow Section */
+  .slideshow {
+    position: relative;
+    margin-top: 40px;
+  }
+  
+  .slideshow-image img {
+    width: 80%;
+    max-width: 600px;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.5s ease, opacity 0.5s ease;
+  }
+  
+  .slideshow-controls {
+    margin-top: 20px;
+  }
+  
+  .slideshow-controls button {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    padding: 10px 20px;
+    background-color: #1ABC9C;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin: 0 10px;
+  }
+  
+  .slideshow-controls button:hover {
+    background-color: #16A085;
+  }
+  
+  .slideshow-result {
+    margin-top: 20px;
+  }
+  
+  .slideshow-result p {
+    font-size: 20px;
+    color: #2C3E50;
+  }
+  
+  .slideshow-result span {
+    color: #1ABC9C; /* Teal accent color */
+  }
