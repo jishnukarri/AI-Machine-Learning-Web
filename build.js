@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
+// Load environment variables
 const apiKey = process.env.GOOGLE_API_KEY;
 const cx = process.env.CUSTOM_SEARCH_ENGINE_ID;
 
@@ -10,25 +11,39 @@ if (!apiKey || !cx) {
   process.exit(1);
 }
 
+// Define directories
+const sourceDir = './';
 const outputDir = './dist';
 const imagesDir = path.join(outputDir, 'images');
-const garbageDir = path.join(imagesDir, 'garbage');
-const marineLifeDir = path.join(imagesDir, 'marine_life');
+const modelDir = path.join(outputDir, 'model-new');
 
-// Create directories if they don't exist
-[outputDir, imagesDir, garbageDir, marineLifeDir].forEach(dir => {
+// Ensure directories exist
+[outputDir, imagesDir, modelDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Replace placeholders in index.html
-function replacePlaceholders() {
-  const html = fs.readFileSync('index.html', 'utf8')
-    .replace('{{ GOOGLE_API_KEY }}', apiKey)
-    .replace('{{ CUSTOM_SEARCH_ENGINE_ID }}', cx);
-  fs.writeFileSync(path.join(outputDir, 'index.html'), html);
+// Copy model files to dist/
+function copyModelFiles() {
+  const modelFiles = fs.readdirSync(path.join(sourceDir, 'model-new'));
+  modelFiles.forEach(file => {
+    fs.copyFileSync(
+      path.join(sourceDir, 'model-new', file),
+      path.join(modelDir, file)
+    );
+  });
+  console.log('Copied model files to dist/');
 }
 
-// Fetch and download images
+// Replace placeholders in index.html
+function updateIndexHtml() {
+  let html = fs.readFileSync(path.join(sourceDir, 'index.html'), 'utf8');
+  html = html.replace('{{ GOOGLE_API_KEY }}', apiKey);
+  html = html.replace('{{ CUSTOM_SEARCH_ENGINE_ID }}', cx);
+  fs.writeFileSync(path.join(outputDir, 'index.html'), html);
+  console.log('Updated index.html with secrets.');
+}
+
+// Fetch and download images (as before)
 async function fetchAndDownloadImages(keyword, folder, count = 50) {
   try {
     const response = await axios.get(
@@ -55,8 +70,16 @@ async function fetchAndDownloadImages(keyword, folder, count = 50) {
 // Main build process
 (async () => {
   console.log('Starting build...');
-  replacePlaceholders();
-  await fetchAndDownloadImages('garbage in ocean', garbageDir, 50);
-  await fetchAndDownloadImages('marine life underwater', marineLifeDir, 50);
+  
+  // Step 1: Copy model files to dist/
+  copyModelFiles();
+
+  // Step 2: Update index.html with secrets
+  updateIndexHtml();
+
+  // Step 3: Download images
+  await fetchAndDownloadImages('garbage in ocean', path.join(imagesDir, 'garbage'), 50);
+  await fetchAndDownloadImages('marine life underwater', path.join(imagesDir, 'marine_life'), 50);
+
   console.log('Build completed!');
 })();
