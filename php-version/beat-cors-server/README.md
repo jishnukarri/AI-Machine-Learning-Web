@@ -13,7 +13,5 @@ npm i
 npm run start
 ```
 
-Then visit `localhost:3000/jokes/random`.
-
 #### Enjoy!
 
