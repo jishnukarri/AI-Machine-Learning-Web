@@ -1,0 +1,20 @@
+Text/Background - Dark 1: #2C3E50  
+Text/Background - Light 1: #F0F8FF  
+Text/Background - Dark 2: #1ABC9C  
+Text/Background - Light 2: #D6EAF8  
+
+Accent 1: #1ABC9C  
+Accent 2: #27AE60  
+Accent 3: #E74C3C  
+Accent 4: #F1C40F  
+Accent 5: #5DADE2  
+Accent 6: #EC7063  
+
+Hyperlink: #0070C0  
+Followed Hyperlink: #002060  ~
+
+
+Headings: Montserrat (Bold)
+Body Text: Roboto (Regular)
+Code/Stats: Consolas or Roboto Mono
+follow this theme alwysa rember
