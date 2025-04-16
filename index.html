@@ -7,23 +7,26 @@
   <title>Ocean Cleanup AI</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    /* Optional: Add custom styles here */
+  </style>
 </head>
 
-<body class="bg-blue-100 font-sans text-gray-800">
+<body class="bg-blue-100 font-sans text-gray-800 min-h-screen flex flex-col justify-center items-center">
   <!-- Loading Screen -->
-  <div id="loading-screen" class="fixed inset-0 flex items-center justify-center bg-white z-50">
-    <div class="text-center">
-      <p class="text-2xl font-bold">Loading...</p>
-      <div class="mt-4 h-2 w-64 bg-gray-200 rounded-full overflow-hidden">
-        <div id="loading-progress" class="h-full bg-teal-500 w-0"></div>
-      </div>
+  <div id="loading-screen" class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50">
+    <p class="text-2xl font-bold mb-4">Loading...</p>
+    <div class="w-64 h-4 bg-gray-200 rounded-full overflow-hidden">
+      <div id="loading-progress" class="h-full bg-teal-500 w-0"></div>
     </div>
   </div>
 
   <!-- Main Content -->
   <div id="main-content" class="hidden container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-center mb-6">Ocean Cleanup AI</h1>
-    <p class="text-lg text-center mb-10">Classify images of ocean debris using AI-powered technology.</p>
+    <h1 class="text-4xl font-bold text-center mb-6 text-teal-700">Ocean Cleanup AI</h1>
+    <p class="text-lg text-center mb-10 text-gray-700">
+      Classify images of ocean debris using AI-powered technology.
+    </p>
 
     <!-- Slideshow Section -->
     <div class="slideshow bg-white p-6 rounded-lg shadow-lg">
@@ -32,13 +35,13 @@
       </div>
       <div class="slideshow-stats mt-6">
         <div class="flex justify-between items-center mb-4">
-          <span>Garbage: <span id="garbage-percentage" class="font-bold">0%</span></span>
+          <span class="text-gray-700">Garbage: <span id="garbage-percentage" class="font-bold text-red-600">0%</span></span>
           <div class="w-2/3 bg-gray-200 h-4 rounded-full overflow-hidden">
             <div id="garbage-progress" class="h-full bg-red-500 w-0"></div>
           </div>
         </div>
         <div class="flex justify-between items-center">
-          <span>Marine Life: <span id="marine-life-percentage" class="font-bold">0%</span></span>
+          <span class="text-gray-700">Marine Life: <span id="marine-life-percentage" class="font-bold text-green-600">0%</span></span>
           <div class="w-2/3 bg-gray-200 h-4 rounded-full overflow-hidden">
             <div id="marine-life-progress" class="h-full bg-green-500 w-0"></div>
           </div>
@@ -66,22 +69,36 @@
       }
     }
 
-    // Fetch random garbage and marine life images from Google
-    async function fetchRandomImages() {
+    // Scrape random garbage and marine life images
+    async function scrapeRandomImages() {
       const keywords = ['garbage in ocean', 'marine life underwater'];
-      const apiKey = 'YOUR_GOOGLE_API_KEY'; // Replace with your Google API key
-      const cx = 'YOUR_CUSTOM_SEARCH_ENGINE_ID'; // Replace with your CSE ID
+      const searchEngines = [
+        'https://www.google.com/search?q=',
+        'https://www.bing.com/images/search?q='
+      ];
 
       for (const keyword of keywords) {
-        const response = await fetch(
-          `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(keyword)}&searchType=image&num=5`
-        );
-        const data = await response.json();
-        images.push(...data.items.map(item => item.link));
+        for (const engine of searchEngines) {
+          try {
+            const response = await fetch(engine + encodeURIComponent(keyword));
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const imgElements = doc.querySelectorAll('img');
+            imgElements.forEach(img => {
+              const src = img.src || img.dataset.src;
+              if (src && !src.includes('base64')) {
+                images.push(src);
+              }
+            });
+          } catch (error) {
+            console.error('Error scraping images:', error);
+          }
+        }
       }
 
       // Randomize the order of images
-      images = images.sort(() => Math.random() - 0.5);
+      images = [...new Set(images)].sort(() => Math.random() - 0.5);
     }
 
     // Preload all images to ensure smooth performance
@@ -177,7 +194,7 @@
     // Load everything when the page loads
     window.onload = async () => {
       await loadModel();
-      await fetchRandomImages();
+      await scrapeRandomImages();
       await preloadImages();
 
       // Hide loading screen and show main content
