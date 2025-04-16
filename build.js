@@ -66,20 +66,32 @@ async function fetchAndDownloadImages(keyword, folder, count = 50) {
     console.error(`Error fetching ${keyword} images:`, error.message);
   }
 }
-
-// Main build process
-(async () => {
-  console.log('Starting build...');
+// Save image paths to a JSON file
+function saveImagePaths(garbageImages, marineImages) {
+    const outputPath = path.join(outputDir, 'images.json');
+    fs.writeFileSync(outputPath, JSON.stringify({
+      garbage: garbageImages,
+      marine: marineImages
+    }));
+    console.log(`Saved image paths to: ${outputPath}`);
+  }
   
-  // Step 1: Copy model files to dist/
-  copyModelFiles();
-
-  // Step 2: Update index.html with secrets
-  updateIndexHtml();
-
-  // Step 3: Download images
-  await fetchAndDownloadImages('garbage in ocean', path.join(imagesDir, 'garbage'), 50);
-  await fetchAndDownloadImages('marine life underwater', path.join(imagesDir, 'marine_life'), 50);
-
-  console.log('Build completed!');
-})();
+  // Main build process
+  (async () => {
+    console.log('Starting build...');
+    
+    // Step 1: Copy model files to dist/
+    copyModelFiles();
+  
+    // Step 2: Update index.html with secrets
+    replacePlaceholders();
+  
+    // Step 3: Download images
+    const garbageImages = await fetchAndDownloadImages('garbage in ocean', path.join(imagesDir, 'garbage'), 50);
+    const marineImages = await fetchAndDownloadImages('marine life underwater', path.join(imagesDir, 'marine_life'), 50);
+  
+    // Step 4: Save image paths to JSON
+    saveImagePaths(garbageImages, marineImages);
+  
+    console.log('Build completed!');
+  })();
