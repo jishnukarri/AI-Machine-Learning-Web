@@ -32,9 +32,9 @@
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Garbage Detection</h2>
         <div id="garbage-gallery" class="flex justify-center space-x-4 mb-4"></div>
         <div class="flex items-center justify-between">
-          <span>Confidence: <span id="garbage-percent" class="text-red-600 font-bold">0%</span></span>
+          <span class="text-gray-700">Confidence: <span id="garbage-percent" class="text-red-600 font-bold">0%</span></span>
           <div class="w-2/3 bg-gray-200 h-4 rounded-full overflow-hidden">
-            <div id="garbage-bar" class="h-full bg-red-500 w-0"></div>
+            <div id="garbage-bar" class="h-full bg-red-500 w-0 transition-all duration-300"></div>
           </div>
         </div>
       </div>
@@ -42,18 +42,18 @@
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Marine Life Protection</h2>
         <div id="marine-gallery" class="flex justify-center space-x-4 mb-4"></div>
         <div class="flex items-center justify-between">
-          <span>Confidence: <span id="marine-percent" class="text-green-600 font-bold">0%</span></span>
+          <span class="text-gray-700">Confidence: <span id="marine-percent" class="text-green-600 font-bold">0%</span></span>
           <div class="w-2/3 bg-gray-200 h-4 rounded-full overflow-hidden">
-            <div id="marine-bar" class="h-full bg-green-500 w-0"></div>
+            <div id="marine-bar" class="h-full bg-green-500 w-0 transition-all duration-300"></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Slideshow Section -->
-    <div id="slideshow" class="container mx-auto p-8 text-center">
+    <div class="container mx-auto p-8 text-center mt-8">
       <h1 class="text-4xl font-bold text-teal-700 mb-8">Ocean Cleanup AI Slideshow</h1>
-      <div id="slideshow-image-container" class="relative w-64 h-64 mx-auto"></div>
+      <div class="relative w-96 h-96 mx-auto">
         <img id="slideshow-image" class="w-full h-full object-cover rounded-lg shadow-md fade-in" src="" alt="Slideshow Image">
       </div>
       <p id="slideshow-caption" class="mt-4 text-lg text-gray-700"></p>
@@ -63,11 +63,12 @@
   <script>
     let model;
     let images = { garbage: [], marine: [] };
+    let currentSlide = 0;
 
     // Load the TensorFlow.js model
     async function loadModel() {
       try {
-        model = await tf.loadLayersModel('/model-new/model.json'); // Absolute path for production
+        model = await tf.loadLayersModel('/model-new/model.json');
         console.log('Model loaded successfully!');
       } catch (error) {
         console.error('Error loading model:', error);
@@ -81,15 +82,12 @@
         const response = await fetch('/images.json');
         const data = await response.json();
         images = {
-          garbage: data.garbage || ['fallback/garbage1.jpg', 'fallback/garbage2.jpg'],
-          marine: data.marine || ['fallback/marine1.jpg', 'fallback/marine2.jpg']
+          garbage: data.garbage || [],
+          marine: data.marine || []
         };
       } catch (error) {
         console.error('Error loading images:', error);
-        images = {
-          garbage: ['fallback/garbage1.jpg', 'fallback/garbage2.jpg'],
-          marine: ['fallback/marine1.jpg', 'fallback/marine2.jpg']
-        };
+        images = { garbage: [], marine: [] };
       }
     }
 
@@ -99,12 +97,10 @@
       const status = document.getElementById('status');
       status.textContent = 'Preloading images...';
       progress.style.width = '50%';
-
       const promises = [
         ...images.garbage.map(src => loadImage(src)),
         ...images.marine.map(src => loadImage(src))
       ];
-
       try {
         await Promise.all(promises);
         progress.style.width = '100%';
@@ -125,106 +121,79 @@
       });
     }
 
-    // Display images
-    function displayImages() {
+    // Display sample images in galleries
+    function displaySampleImages() {
       const garbageGallery = document.getElementById('garbage-gallery');
       const marineGallery = document.getElementById('marine-gallery');
-
-      // Clear previous images
       garbageGallery.innerHTML = '';
       marineGallery.innerHTML = '';
 
-      // Select 3 random images from each category
-      const randomGarbage = getRandomElements(images.garbage, 3);
-      const randomMarine = getRandomElements(images.marine, 3);
+      // Show 3 random images per category
+      const randomGarbage = [...new Set(
+        Array.from({ length: 3 }, () => images.garbage[Math.floor(Math.random() * images.garbage.length)])
+      )];
+      const randomMarine = [...new Set(
+        Array.from({ length: 3 }, () => images.marine[Math.floor(Math.random() * images.marine.length)])
+      )];
 
-      // Display images with fade-in effect
       randomGarbage.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
-        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md fade-in';
+        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md';
         garbageGallery.appendChild(img);
       });
+
       randomMarine.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
-        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md fade-in';
+        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md';
         marineGallery.appendChild(img);
       });
     }
 
-    // Get random elements from an array
-    function getRandomElements(arr, count) {
-      return Array.from({ length: count }, () => arr[
-        Math.floor(Math.random() * arr.length)
-      ]).filter((v, i, a) => a.indexOf(v) === i); // Ensure uniqueness
-    }
-
-    // Simulate loading delay for UX
-    function simulateLoading() {
-      return new Promise(resolve => {
-        let width = 0;
-        const interval = setInterval(() => {
-          width += 10;
-          document.getElementById('progress').style.width = `${width}%`;
-          if (width >= 100) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 200);
-      });
-    }
-
     // Slideshow functionality
-    let currentCategory = 'garbage';
-    let currentIndex = 0;
-
     function startSlideshow() {
       const categories = ['garbage', 'marine'];
       const imageContainer = document.getElementById('slideshow-image');
       const caption = document.getElementById('slideshow-caption');
+      let currentCategoryIndex = 0;
+      let currentIndex = 0;
 
-      function updateSlideshow() {
-        const imagesToShow = images[currentCategory];
-        if (imagesToShow.length === 0) return;
+      function updateSlide() {
+        const currentCategory = categories[currentCategoryIndex];
+        const imagesArray = images[currentCategory];
+        if (imagesArray.length === 0) return;
 
-        imageContainer.src = imagesToShow[currentIndex];
+        imageContainer.src = imagesArray[currentIndex];
         caption.textContent = `${currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1)} Image ${currentIndex + 1}`;
+        currentIndex = (currentIndex + 1) % imagesArray.length;
 
-        currentIndex = (currentIndex + 1) % imagesToShow.length;
         if (currentIndex === 0) {
-          currentCategory = categories[(categories.indexOf(currentCategory) + 1) % categories.length];
+          currentCategoryIndex = (currentCategoryIndex + 1) % categories.length;
         }
       }
 
-      updateSlideshow();
-      setInterval(updateSlideshow, 3000); // Change image every 3 seconds
-    }
-
-    // Start the slideshow after images are preloaded
-    async function initSlideshow() {
-      await loadImagePaths();
-      await preloadImages();
-      startSlideshow();
+      updateSlide();
+      setInterval(updateSlide, 3000); // Change every 3 seconds
     }
 
     // Initialize the app
     async function init() {
       // Simulate loading
-      await simulateLoading();
-      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Load model and images
       await loadModel();
       await loadImagePaths();
       await preloadImages();
-      
-      // Display content
+
+      // Show UI
       document.getElementById('loader').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
-      displayImages();
 
-      // Initialize slideshow
-      initSlideshow();
+      // Initialize components
+      displaySampleImages();
+      startSlideshow();
     }
 
     // Start the app
