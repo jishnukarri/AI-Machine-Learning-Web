@@ -14,7 +14,10 @@ let htmlContent = fs.readFileSync('index.html', 'utf8');
 htmlContent = htmlContent.replace('{{ GOOGLE_API_KEY }}', apiKey);
 htmlContent = htmlContent.replace('{{ CUSTOM_SEARCH_ENGINE_ID }}', cx);
 
-// Write the updated content back to the file
-fs.writeFileSync('dist/index.html', htmlContent);
+// Write the updated content to the dist directory
+if (!fs.existsSync('./dist')) {
+  fs.mkdirSync('./dist');
+}
+fs.writeFileSync('./dist/index.html', htmlContent);
 
 console.log('Build completed successfully!');
