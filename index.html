@@ -6,6 +6,13 @@
   <title>Ocean Cleanup AI</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .fade-in { animation: fadeIn 1s ease-in-out; }
+  </style>
 </head>
 <body class="bg-blue-100 min-h-screen flex items-center justify-center">
   <!-- Loading Screen -->
@@ -48,18 +55,18 @@
     let model;
     let images = { garbage: [], marine: [] };
 
-    // Load the model
+    // Load the TensorFlow.js model
     async function loadModel() {
       try {
         model = await tf.loadLayersModel('/model-new/model.json'); // Absolute path for production
         console.log('Model loaded successfully!');
       } catch (error) {
-        console.error('Failed to load model:', error);
-        alert('Error loading AI model. Check the console for details.');
+        console.error('Error loading model:', error);
+        alert('Failed to load AI model. Check console for details.');
       }
     }
 
-    // Load image paths from images.json
+    // Load image paths from JSON
     async function loadImagePaths() {
       try {
         const response = await fetch('/images.json');
@@ -69,7 +76,7 @@
           marine: data.marine || ['fallback/marine1.jpg', 'fallback/marine2.jpg']
         };
       } catch (error) {
-        console.error('Failed to load images:', error);
+        console.error('Error loading images:', error);
         images = {
           garbage: ['fallback/garbage1.jpg', 'fallback/garbage2.jpg'],
           marine: ['fallback/marine1.jpg', 'fallback/marine2.jpg']
@@ -77,7 +84,7 @@
       }
     }
 
-    // Preload images
+    // Preload images with CORS handling
     async function preloadImages() {
       const progress = document.getElementById('progress');
       const status = document.getElementById('status');
@@ -98,17 +105,14 @@
       }
     }
 
-    // Load an image and handle errors
+    // Load image with CORS
     function loadImage(src) {
       return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.src = src;
         img.onload = resolve;
-        img.onerror = () => {
-          console.error(`Failed to load image: ${src}`);
-          resolve(); // Continue even if some images fail
-        };
+        img.onerror = reject;
       });
     }
 
@@ -125,17 +129,17 @@
       const randomGarbage = getRandomElements(images.garbage, 3);
       const randomMarine = getRandomElements(images.marine, 3);
 
-      // Display images
+      // Display images with fade-in effect
       randomGarbage.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
-        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md';
+        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md fade-in';
         garbageGallery.appendChild(img);
       });
       randomMarine.forEach(src => {
         const img = document.createElement('img');
         img.src = src;
-        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md';
+        img.className = 'w-32 h-32 object-cover rounded-lg shadow-md fade-in';
         marineGallery.appendChild(img);
       });
     }
@@ -145,6 +149,21 @@
       return Array.from({ length: count }, () => arr[
         Math.floor(Math.random() * arr.length)
       ]).filter((v, i, a) => a.indexOf(v) === i); // Ensure uniqueness
+    }
+
+    // Simulate loading delay for UX
+    function simulateLoading() {
+      return new Promise(resolve => {
+        let width = 0;
+        const interval = setInterval(() => {
+          width += 10;
+          document.getElementById('progress').style.width = `${width}%`;
+          if (width >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 200);
+      });
     }
 
     // Initialize the app
@@ -161,23 +180,6 @@
       document.getElementById('loader').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
       displayImages();
-    }
-
-    // Simulate loading delay for UX
-    function simulateLoading() {
-      return new Promise(resolve => {
-        const progress = document.getElementById('progress');
-        const status = document.getElementById('status');
-        let width = 0;
-        const interval = setInterval(() => {
-          width += 10;
-          progress.style.width = `${width}%`;
-          if (width >= 100) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 200);
-      });
     }
 
     // Start the app
