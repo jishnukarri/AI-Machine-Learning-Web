@@ -52,50 +52,54 @@ async function downloadImage(url, folder, counter) {
 }
 
 async function fetchAndProcessImages(keyword, folder, count = 10) {
-  try {
-    const response = await axios.get(
-      `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(keyword)}&searchType=image&num=${count}`
-    );
-    
-    if (response.data.error) {
-      console.error(`API Error: ${response.data.error.message}`);
-      return [];
+    try {
+        const batchSize = 10;
+        let results = [];
+        for (let i = 0; i < Math.ceil(count / batchSize); i++) {
+            const currentCount = Math.min(batchSize, count - i * batchSize);
+            const response = await axios.get(
+                `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(keyword)}&searchType=image&num=${currentCount}`
+            );
+
+            if (response.data.error) {
+                console.error(`API Error: ${response.data.error.message}`);
+                return results;
+            }
+
+            const urls = response.data.items.map(item => item.link.replace('http://', 'https://'));
+            const validUrls = urls.filter(url => /\.(jpg|jpeg|png|webp)$/i.test(url));
+
+            let counter = i * batchSize;
+            for (const url of validUrls) {
+                const fileName = await downloadImage(url, folder, counter);
+                if (fileName) results.push(fileName);
+                counter++;
+            }
+        }
+        return results;
+    } catch (error) {
+        console.error(`Failed to process ${keyword} images: ${error.message}`);
+        return [];
     }
-    
-    const urls = response.data.items.map(item => item.link.replace('http://', 'https://'));
-    const validUrls = urls.filter(url => /\.(jpg|jpeg|png|webp)$/i.test(url));
-    
-    let counter = 0;
-    const results = [];
-    for (const url of validUrls) {
-      const fileName = await downloadImage(url, folder, counter);
-      if (fileName) results.push(fileName);
-      counter++;
-    }
-    return results;
-  } catch (error) {
-    console.error(`Failed to process ${keyword} images: ${error.message}`);
-    return [];
-  }
 }
 
 async function build() {
-  try {
-    copyStaticFiles();
-    // Fetch and download images with sequential naming
-    const garbageImages = await fetchAndProcessImages('garbage in ocean', garbageDir, 10);
-    const marineImages = await fetchAndProcessImages('marine life underwater', marineDir, 10);
+    try {
+        copyStaticFiles();
+        // Fetch and download images with sequential naming
+        const garbageImages = await fetchAndProcessImages('garbage in ocean', garbageDir, 30);
+        const marineImages = await fetchAndProcessImages('marine life underwater', marineDir, 30);
 
-    // Save image paths to JSON
-    fs.writeFileSync(path.join(outputDir, 'images.json'), JSON.stringify({
-      garbage: garbageImages.map(f => `images/garbage/${f}`),
-      marine: marineImages.map(f => `images/marine_life/${f}`)
-    }));
-    
-    console.log('Build completed successfully!');
-  } catch (error) {
-    console.error('Build failed:', error);
-  }
+        // Save image paths to JSON
+        fs.writeFileSync(path.join(outputDir, 'images.json'), JSON.stringify({
+            garbage: garbageImages.map(f => `images/garbage/${f}`),
+            marine: marineImages.map(f => `images/marine_life/${f}`)
+        }));
+        
+        console.log('Build completed successfully!');
+    } catch (error) {
+        console.error('Build failed:', error);
+    }
 }
 
 build();
