@@ -18,7 +18,8 @@
   "homepage": "https://github.com/jishnukarri/AI-Machine-Learning-Web#readme",
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "axios": "^1.8.4"
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0"
   },
   "description": ""
 }

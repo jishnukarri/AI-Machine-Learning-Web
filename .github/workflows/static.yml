@@ -22,18 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@master
+        uses: actions/setup-node@v3
         with:
-          node-version: 16
-
-      - name: Initialize npm (if package.json doesn't exist)
-        run: |
-          if [ ! -f "package.json" ]; then
-            npm init -y
-          fi
+          node-version: 18
 
       - name: Install dependencies
         run: npm install axios @tensorflow/tfjs
@@ -45,10 +39,10 @@ jobs:
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@master
+        uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@master
+        uses: actions/deploy-pages@v4

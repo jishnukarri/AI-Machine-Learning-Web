@@ -48,35 +48,41 @@
     let model;
     let images = { garbage: [], marine: [] };
 
-    // Load the TensorFlow.js model
+    // Load the model
     async function loadModel() {
       try {
-        model = await tf.loadLayersModel('/model-new/model.json'); // Absolute path to model in dist/
+        model = await tf.loadLayersModel('/model-new/model.json'); // Absolute path for production
         console.log('Model loaded successfully!');
       } catch (error) {
-        console.error('Error loading model:', error);
+        console.error('Failed to load model:', error);
+        alert('Error loading AI model. Check the console for details.');
       }
     }
 
-    // Load image paths from JSON
+    // Load image paths from images.json
     async function loadImagePaths() {
       try {
-        const response = await fetch('/images.json'); // Local JSON file
+        const response = await fetch('/images.json');
         const data = await response.json();
-        images = data;
-        console.log('Loaded images:', images);
+        images = {
+          garbage: data.garbage || ['fallback/garbage1.jpg', 'fallback/garbage2.jpg'],
+          marine: data.marine || ['fallback/marine1.jpg', 'fallback/marine2.jpg']
+        };
       } catch (error) {
-        console.error('Error loading image paths:', error);
+        console.error('Failed to load images:', error);
+        images = {
+          garbage: ['fallback/garbage1.jpg', 'fallback/garbage2.jpg'],
+          marine: ['fallback/marine1.jpg', 'fallback/marine2.jpg']
+        };
       }
     }
 
-    // Preload images for smooth performance
+    // Preload images
     async function preloadImages() {
       const progress = document.getElementById('progress');
       const status = document.getElementById('status');
       status.textContent = 'Preloading images...';
-      progress.style.width = '33%';
-      await new Promise(r => setTimeout(r, 1000));
+      progress.style.width = '50%';
 
       const promises = [
         ...images.garbage.map(src => loadImage(src)),
@@ -90,19 +96,23 @@
       } catch (error) {
         console.error('Error preloading images:', error);
       }
-
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous'; // For local files, this is redundant but safe
-          img.src = src;
-          img.onload = resolve;
-          img.onerror = reject;
-        });
-      }
     }
 
-    // Select and display 3 random images from each category
+    // Load an image and handle errors
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = src;
+        img.onload = resolve;
+        img.onerror = () => {
+          console.error(`Failed to load image: ${src}`);
+          resolve(); // Continue even if some images fail
+        };
+      });
+    }
+
+    // Display images
     function displayImages() {
       const garbageGallery = document.getElementById('garbage-gallery');
       const marineGallery = document.getElementById('marine-gallery');
@@ -137,29 +147,37 @@
       ]).filter((v, i, a) => a.indexOf(v) === i); // Ensure uniqueness
     }
 
-    // Simulate loading delay
-    async function simulateLoading() {
-      const progress = document.getElementById('progress');
-      const status = document.getElementById('status');
-      status.textContent = 'Downloading images...';
-      progress.style.width = '33%';
-      await new Promise(r => setTimeout(r, 1000));
-      status.textContent = 'Training model...';
-      progress.style.width = '66%';
-      await new Promise(r => setTimeout(r, 1000));
-      status.textContent = 'Finalizing setup...';
-      progress.style.width = '100%';
-      await new Promise(r => setTimeout(r, 500));
-    }
-
     // Initialize the app
     async function init() {
+      // Simulate loading
       await simulateLoading();
+      
+      // Load model and images
       await loadModel();
       await loadImagePaths();
-      displayImages();
+      await preloadImages();
+      
+      // Display content
       document.getElementById('loader').classList.add('hidden');
       document.getElementById('app').classList.remove('hidden');
+      displayImages();
+    }
+
+    // Simulate loading delay for UX
+    function simulateLoading() {
+      return new Promise(resolve => {
+        const progress = document.getElementById('progress');
+        const status = document.getElementById('status');
+        let width = 0;
+        const interval = setInterval(() => {
+          width += 10;
+          progress.style.width = `${width}%`;
+          if (width >= 100) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 200);
+      });
     }
 
     // Start the app
