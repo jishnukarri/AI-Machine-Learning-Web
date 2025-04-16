@@ -21,11 +21,11 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@master # EXACTLY @master
+      - name: Checkout
+        uses: actions/checkout@master
 
       - name: Setup Node.js
-        uses: actions/setup-node@master # EXACTLY @master
+        uses: actions/setup-node@master
         with:
           node-version: '20'
 
@@ -41,14 +41,14 @@ jobs:
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
         run: node build.js
 
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@master # MUST USE @master
+        with:
+          path: './dist'
+          artifact_name: 'github-pages' # NAME MATCHES DEPLOY STEP [[2]][[3]]
+
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@master # EXACTLY @master
+        uses: actions/deploy-pages@master # NO UNDEFINED INPUTS [[2]][[3]]
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          publish: dist
-
-      - name: Verify deployment
-        run: |
-          curl -sSL https://github.jishnukarri.me/model-new/model.json
-          curl -sSL https://github.jishnukarri.me/images.json
-          echo "Deployment verified"
+          artifact_name: 'github-pages' # REQUIRED [[3]]
