@@ -1,0 +1,23 @@
+{
+  "name": "ai-machine-learning-web",
+  "version": "1.0.0",
+  "main": "build.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jishnukarri/AI-Machine-Learning-Web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jishnukarri/AI-Machine-Learning-Web/issues"
+  },
+  "homepage": "https://github.com/jishnukarri/AI-Machine-Learning-Web#readme",
+  "description": "",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0"
+  }
+}
