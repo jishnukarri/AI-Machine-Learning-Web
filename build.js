@@ -12,7 +12,6 @@ if (!apiKey || !cx) {
 }
 
 // Define directories
-const sourceDir = './';
 const outputDir = './dist';
 const imagesDir = path.join(outputDir, 'images');
 const modelDir = path.join(outputDir, 'model-new');
@@ -24,10 +23,10 @@ const modelDir = path.join(outputDir, 'model-new');
 
 // Copy model files to dist/
 function copyModelFiles() {
-  const modelFiles = fs.readdirSync(path.join(sourceDir, 'model-new'));
+  const modelFiles = fs.readdirSync('./model-new');
   modelFiles.forEach(file => {
     fs.copyFileSync(
-      path.join(sourceDir, 'model-new', file),
+      path.join('./model-new', file),
       path.join(modelDir, file)
     );
   });
@@ -36,62 +35,70 @@ function copyModelFiles() {
 
 // Replace placeholders in index.html
 function updateIndexHtml() {
-  let html = fs.readFileSync(path.join(sourceDir, 'index.html'), 'utf8');
-  html = html.replace('{{ GOOGLE_API_KEY }}', apiKey);
-  html = html.replace('{{ CUSTOM_SEARCH_ENGINE_ID }}', cx);
+  let html = fs.readFileSync('index.html', 'utf8')
+    .replace('{{ GOOGLE_API_KEY }}', apiKey)
+    .replace('{{ CUSTOM_SEARCH_ENGINE_ID }}', cx);
   fs.writeFileSync(path.join(outputDir, 'index.html'), html);
   console.log('Updated index.html with secrets.');
 }
 
-// Fetch and download images (as before)
+// Fetch and download images
 async function fetchAndDownloadImages(keyword, folder, count = 50) {
   try {
     const response = await axios.get(
       `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(keyword)}&searchType=image&num=${count}`
     );
     const imageUrls = response.data.items.map(item => item.link.replace('http://', 'https://'));
+    const validExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const downloadedImages = [];
+
     for (let i = 0; i < imageUrls.length; i++) {
       try {
         const url = new URL(imageUrls[i]);
         const ext = path.extname(url.pathname).toLowerCase();
-        if (!['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) continue;
+        if (!validExtensions.includes(ext)) continue;
         const buffer = await axios.get(url.href, { responseType: 'arraybuffer' });
-        fs.writeFileSync(path.join(folder, `image_${i}${ext}`), buffer.data);
-        console.log(`Downloaded: ${url.href}`);
+        const fileName = `image_${i}${ext}`;
+        fs.writeFileSync(path.join(folder, fileName), buffer.data);
+        downloadedImages.push(fileName);
+        console.log(`Downloaded: ${fileName}`);
       } catch (error) {
         console.error(`Failed to download ${imageUrls[i]}:`, error.message);
       }
     }
+    return downloadedImages;
   } catch (error) {
     console.error(`Error fetching ${keyword} images:`, error.message);
+    return [];
   }
 }
+
 // Save image paths to a JSON file
 function saveImagePaths(garbageImages, marineImages) {
-    const outputPath = path.join(outputDir, 'images.json');
-    fs.writeFileSync(outputPath, JSON.stringify({
-      garbage: garbageImages,
-      marine: marineImages
-    }));
-    console.log(`Saved image paths to: ${outputPath}`);
-  }
+  const outputPath = path.join(outputDir, 'images.json');
+  fs.writeFileSync(outputPath, JSON.stringify({
+    garbage: garbageImages.map(file => `images/garbage/${file}`),
+    marine: marineImages.map(file => `images/marine_life/${file}`)
+  }));
+  console.log(`Saved image paths to: ${outputPath}`);
+}
+
+// Main build process
+(async () => {
+  console.log('Starting build...');
   
-  // Main build process
-  (async () => {
-    console.log('Starting build...');
-    
-    // Step 1: Copy model files to dist/
-    copyModelFiles();
-  
-    // Step 2: Update index.html with secrets
-    replacePlaceholders();
-  
-    // Step 3: Download images
-    const garbageImages = await fetchAndDownloadImages('garbage in ocean', path.join(imagesDir, 'garbage'), 50);
-    const marineImages = await fetchAndDownloadImages('marine life underwater', path.join(imagesDir, 'marine_life'), 50);
-  
-    // Step 4: Save image paths to JSON
-    saveImagePaths(garbageImages, marineImages);
-  
-    console.log('Build completed!');
-  })();
+  // Step 1: Copy model files to dist/
+  copyModelFiles();
+
+  // Step 2: Update index.html with secrets
+  updateIndexHtml();
+
+  // Step 3: Download images
+  const garbageImages = await fetchAndDownloadImages('garbage in ocean', path.join(imagesDir, 'garbage'), 50);
+  const marineImages = await fetchAndDownloadImages('marine life underwater', path.join(imagesDir, 'marine_life'), 50);
+
+  // Step 4: Save image paths to JSON
+  saveImagePaths(garbageImages, marineImages);
+
+  console.log('Build completed!');
+})();
