@@ -11,8 +11,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -21,28 +21,34 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@master # EXACTLY @master
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@master # EXACTLY @master
         with:
-          node-version: 18
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install axios @tensorflow/tfjs
+        run: npm install axios
+
+      - name: Clean dist directory
+        run: rm -rf dist/*
 
       - name: Build project
-        run: node build.js
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './dist'
+        run: node build.js
 
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@master # EXACTLY @master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          publish: dist
+
+      - name: Verify deployment
+        run: |
+          curl -sSL https://github.jishnukarri.me/model-new/model.json
+          curl -sSL https://github.jishnukarri.me/images.json
+          echo "Deployment verified"
