@@ -11,8 +11,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -21,39 +21,28 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@master # Keep specific version for stability
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@master # Keep specific version for stability
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 18
 
       - name: Install dependencies
-        run: npm install axios
-
-      - name: Clean dist directory
-        run: rm -rf dist/*
+        run: npm install axios @tensorflow/tfjs
 
       - name: Build project
+        run: node build.js
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
-        run: node build.js
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@master # Keep specific version for stability
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@master # Use @master explicitly
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          publish: dist
-
-      - name: Post-deployment check
-        run: |
-          curl -sSL https://your-gh-pages-url.com/model-new/model.json
-          curl -sSL https://your-gh-pages-url.com/images.json
-          echo "Deployment verification successful"
+        uses: actions/deploy-pages@v4
