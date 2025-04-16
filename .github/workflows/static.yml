@@ -11,8 +11,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -21,28 +21,47 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20' # Updated to latest LTS
+          cache: 'npm' # Cache dependencies
 
       - name: Install dependencies
-        run: npm install axios @tensorflow/tfjs
+        run: npm install axios
+
+      - name: Clean dist directory
+        run: rm -rf dist/*
 
       - name: Build project
-        run: node build.js
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
+        run: node build.js
+
+      - name: Verify build output
+        run: |
+          test -d dist/images/garbage && test -d dist/images/marine_life
+          test -f dist/images.json && test -d dist/model-new
+          echo "Build validation successful"
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
-          path: './dist'
+          path: 'dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          publish: dist
+
+      - name: Post-deployment check
+        run: |
+          curl -sSL https://your-gh-pages-url.com/model-new/model.json
+          curl -sSL https://your-gh-pages-url.com/images.json
+          echo "Deployment verification successful"
