@@ -16,8 +16,9 @@
     "url": "https://github.com/jishnukarri/AI-Machine-Learning-Web/issues"
   },
   "homepage": "https://github.com/jishnukarri/AI-Machine-Learning-Web#readme",
-  "description": "",
   "dependencies": {
-    "@tensorflow/tfjs": "^4.22.0"
-  }
+    "@tensorflow/tfjs": "^4.22.0",
+    "axios": "^1.8.4"
+  },
+  "description": ""
 }
