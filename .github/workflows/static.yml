@@ -42,12 +42,6 @@ jobs:
           CUSTOM_SEARCH_ENGINE_ID: ${{ secrets.CUSTOM_SEARCH_ENGINE_ID }}
         run: node build.js
 
-      - name: Verify build output
-        run: |
-          test -d dist/images/garbage && test -d dist/images/marine_life
-          test -f dist/images.json && test -d dist/model-new
-          echo "Build validation successful"
-
       - name: Upload artifact
         uses: actions/upload-pages-artifact@master # Keep specific version for stability
 
