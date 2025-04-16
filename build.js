@@ -1,108 +1,82 @@
-require('dotenv').config(); // Load local .env file
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-// Load API credentials
+require('dotenv').config();
 const apiKey = process.env.GOOGLE_API_KEY;
 const cx = process.env.CUSTOM_SEARCH_ENGINE_ID;
 
-if (!apiKey || !cx) {
-  console.error('Missing API credentials. Check your .env file or GitHub Secrets.');
-  process.exit(1);
-}
-
-// Directories
 const outputDir = './dist';
 const imagesDir = path.join(outputDir, 'images');
-const modelDir = path.join(outputDir, 'model-new');
+const garbageDir = path.join(imagesDir, 'garbage');
+const marineDir = path.join(imagesDir, 'marine_life');
 
-// Ensure directories exist
-[outputDir, imagesDir, modelDir].forEach(dir => {
+// Create directories if they don't exist
+[outputDir, imagesDir, garbageDir, marineDir].forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Copy model files to dist/
-function copyModelFiles() {
+async function downloadImage(url, folder, counter) {
   try {
-    const modelFiles = fs.readdirSync('./model-new');
-    modelFiles.forEach(file => {
-      fs.copyFileSync(
-        path.join('./model-new', file),
-        path.join(modelDir, file)
-      );
+    const response = await axios.get(url, {
+      responseType: 'arraybuffer',
+      headers: { 'User-Agent': 'Mozilla/5.0' } // Bypass 403 errors
     });
-    console.log('Model files copied to dist/');
+    
+    const ext = path.extname(new URL(url).pathname).toLowerCase();
+    const fileName = `image${counter > 0 ? `_${counter}` : ''}${ext}`;
+    fs.writeFileSync(path.join(folder, fileName), response.data);
+    return fileName;
   } catch (error) {
-    console.error('Failed to copy model files:', error);
+    console.error(`Failed to download ${url}: ${error.message}`);
+    return null;
   }
 }
 
-// Fetch images via Google Custom Search API
-async function fetchImages(keyword, count = 10) {
+async function fetchAndProcessImages(keyword, folder, count = 10) {
   try {
     const response = await axios.get(
       `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(keyword)}&searchType=image&num=${count}`
     );
+    
     if (response.data.error) {
-      console.error(`API Error for "${keyword}":`, response.data.error.message);
+      console.error(`API Error: ${response.data.error.message}`);
       return [];
     }
-    return response.data.items.map(item => item.link.replace('http://', 'https://'));
+    
+    const urls = response.data.items.map(item => item.link.replace('http://', 'https://'));
+    const validUrls = urls.filter(url => /\.(jpg|jpeg|png|webp)$/i.test(url));
+    
+    let counter = 0;
+    const results = [];
+    for (const url of validUrls) {
+      const fileName = await downloadImage(url, folder, counter);
+      if (fileName) results.push(fileName);
+      counter++;
+    }
+    return results;
   } catch (error) {
-    console.error(`Failed to fetch "${keyword}" images:`, error.message);
+    console.error(`Failed to process ${keyword} images: ${error.message}`);
     return [];
   }
 }
 
-// Download images to local directories
-async function downloadImages(urls, folder) {
-  const validExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-  const validImages = [];
+async function build() {
+  try {
+    // Fetch and download images with sequential naming
+    const garbageImages = await fetchAndProcessImages('garbage in ocean', garbageDir, 10);
+    const marineImages = await fetchAndProcessImages('marine life underwater', marineDir, 10);
 
-  for (const url of urls) {
-    try {
-      const ext = path.extname(new URL(url).pathname).toLowerCase();
-      if (!validExtensions.includes(ext)) continue;
-      const { data } = await axios.get(url, { responseType: 'arraybuffer' });
-      const fileName = `image_${Date.now()}${ext}`;
-      fs.writeFileSync(path.join(folder, fileName), data);
-      validImages.push(fileName);
-      console.log(`Downloaded: ${fileName}`);
-    } catch (error) {
-      console.error(`Failed to download ${url}:`, error.message);
-    }
+    // Save image paths to JSON
+    fs.writeFileSync(path.join(outputDir, 'images.json'), JSON.stringify({
+      garbage: garbageImages.map(f => `images/garbage/${f}`),
+      marine: marineImages.map(f => `images/marine_life/${f}`)
+    }));
+    
+    console.log('Build completed successfully!');
+  } catch (error) {
+    console.error('Build failed:', error);
   }
-  return validImages;
 }
 
-// Generate images.json with local paths
-function saveImagePaths(garbage, marine) {
-  const data = {
-    garbage: garbage.map(file => `images/garbage/${file}`),
-    marine: marine.map(file => `images/marine_life/${file}`)
-  };
-  fs.writeFileSync(path.join(outputDir, 'images.json'), JSON.stringify(data, null, 2));
-  console.log('Image paths saved to images.json');
-}
-
-// Main build process
-(async () => {
-  console.log('Starting build...');
-  
-  // Step 1: Copy model files
-  copyModelFiles();
-
-  // Step 2: Fetch images
-  const garbageUrls = await fetchImages('garbage in ocean');
-  const marineUrls = await fetchImages('marine life underwater');
-
-  // Step 3: Download images
-  const garbageImages = await downloadImages(garbageUrls, path.join(imagesDir, 'garbage'));
-  const marineImages = await downloadImages(marineUrls, path.join(imagesDir, 'marine_life'));
-
-  // Step 4: Save image paths
-  saveImagePaths(garbageImages, marineImages);
-
-  console.log('Build completed!');
-})();
+build();
