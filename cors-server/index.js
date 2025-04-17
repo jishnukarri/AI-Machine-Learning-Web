@@ -11,18 +11,8 @@ const client = upnp.createClient();
 const nodeEnv = 'production';
 // Configuration Constants
 const PORT = 8080;
-const API_KEY = '';
-const CX = '';
-const ALLOWED_ORIGINS = [
-  'http://localhost:8080',
-  'http://localhost:5000',
-  'http://192.168.0.22:5000',
-  'http://192.168.0.3:5000',
-  'http://86.23.213.26:5000',
-  'http://jishnukarri.me:5000/',
-  '*',
-  nodeEnv === 'production' && 'http://aqua.jishnukarri.me:5000/'
-]
+const API_KEY = process.env.GOOGLE_API_KEY || ''; // Use environment variable for API key
+const CX = process.env.GOOGLE_CX || ''; // Use environment variable for CX key
 
 // TensorFlow.js compatible image types (as per tfjs documentation)
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|bmp|gif|webp)$/i;
@@ -50,10 +40,10 @@ app.use(express.json({ limit: '10kb' }));
 // In your Node.js server (index.js)
 app.use((req, res, next) => {
   const allowedOrigins = [
-    'http://aqua.jishnukarri.me:5000',
-    'http://aqua.jishnukarri.me:8080',
-    'http://192.168.0.22:5000',
-    'http://86.23.213.26:5000',
+    process.env.ALLOWED_ORIGIN_1 || 'http://aqua.jishnukarri.me:5000',
+    process.env.ALLOWED_ORIGIN_2 || 'http://aqua.jishnukarri.me:8080',
+    process.env.ALLOWED_ORIGIN_3 || 'http://192.168.0.22:5000',
+    process.env.ALLOWED_ORIGIN_4 || 'public-ip:port',
   ];
   
   if (allowedOrigins.includes(req.headers.origin)) {
