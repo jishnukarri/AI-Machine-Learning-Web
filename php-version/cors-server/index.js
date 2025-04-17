@@ -4,16 +4,25 @@ const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const app = express();
+const upnp = require('nat-upnp');
+const client = upnp.createClient();
 
+
+const nodeEnv = 'production';
 // Configuration Constants
 const PORT = 8080;
-const API_KEY = 'AIzaSyD-30W7hICtjmb-x_JiUQo89sKjZAa3VEw';
+const API_KEY = 'AIzaSyDnSyaqUG2k1uknqZpjCLhCvnq2VXTvIws';
 const CX = '351cf2068915748d9';
 const ALLOWED_ORIGINS = [
   'http://localhost:8080',
-  'http://localhost:8000',
-  process.env.NODE_ENV === 'production' && 'https://your-production-domain.com'
-].filter(Boolean);
+  'http://localhost:5000',
+  'http://192.168.0.22:5000',
+  'http://192.168.0.3:5000',
+  'http://86.23.213.26:5000',
+  'http://jishnukarri.me:5000/',
+  '*',
+  nodeEnv === 'production' && 'http://aqua.jishnukarri.me:5000/'
+]
 
 // TensorFlow.js compatible image types (as per tfjs documentation)
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|bmp|gif|webp)$/i;
@@ -37,13 +46,27 @@ app.use(helmet({
 app.use(express.json({ limit: '10kb' }));
 
 // CORS Configuration
-app.use(cors({
-  origin: ALLOWED_ORIGINS,
-  methods: ['GET'],
-  allowedHeaders: ['Content-Type'],
-  optionsSuccessStatus: 200
-}));
-
+// Replace existing CORS middleware with:
+// In your Node.js server (index.js)
+app.use((req, res, next) => {
+  const allowedOrigins = [
+    'http://aqua.jishnukarri.me:5000',
+    'http://aqua.jishnukarri.me:8080',
+    'http://192.168.0.22:5000',
+    'http://86.23.213.26:5000',
+  ];
+  
+  if (allowedOrigins.includes(req.headers.origin)) {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
+  res.header('Access-Control-Max-Age', '3600');
+  
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 // Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -255,7 +278,8 @@ function handleApiError(res, error) {
 app.use((req, res) => res.status(404).json({ success: false, error: 'Endpoint not found' }));
 app.use((err, req, res, next) => handleApiError(res, err));
 
-app.listen(PORT, () => {
+// Keep existing app.listen()
+app.listen(PORT,'0.0.0.0', () => {
   console.log(`🚀 Server operational on port ${PORT}`);
   console.log(`🌐 Access endpoints at: http://localhost:${PORT}/api`);
 });
