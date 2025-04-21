@@ -10,9 +10,19 @@ const client = upnp.createClient();
 
 const nodeEnv = 'production';
 // Configuration Constants
-const PORT = 8080;
-const API_KEY = process.env.GOOGLE_API_KEY || ''; // Use environment variable for API key
-const CX = process.env.GOOGLE_CX || ''; // Use environment variable for CX key
+const PORT = 8081;
+const API_KEY = 'AIzaSyDnSyaqUG2k1uknqZpjCLhCvnq2VXTvIws';
+const CX = '351cf2068915748d9';
+const ALLOWED_ORIGINS = [
+  'http://localhost:8081',
+  'http://localhost:5000',
+  'http://192.168.0.22:5000',
+  'http://192.168.0.3:5000',
+  'http://86.23.213.26:5000',
+  'http://jishnukarri.me:5000/',
+  '*',
+  nodeEnv === 'production' && 'http://aqua.jishnukarri.me:5000/'
+]
 
 // TensorFlow.js compatible image types (as per tfjs documentation)
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|bmp|gif|webp)$/i;
@@ -40,10 +50,10 @@ app.use(express.json({ limit: '10kb' }));
 // In your Node.js server (index.js)
 app.use((req, res, next) => {
   const allowedOrigins = [
-    process.env.ALLOWED_ORIGIN_1 || 'http://aqua.jishnukarri.me:5000',
-    process.env.ALLOWED_ORIGIN_2 || 'http://aqua.jishnukarri.me:8080',
-    process.env.ALLOWED_ORIGIN_3 || 'http://192.168.0.22:5000',
-    process.env.ALLOWED_ORIGIN_4 || 'public-ip:port',
+    'http://aqua.jishnukarri.me:5000',
+    'http://aqua.jishnukarri.me:8081',
+    'http://192.168.0.22:5000',
+    'http://86.23.213.26:5000',
   ];
   
   if (allowedOrigins.includes(req.headers.origin)) {
@@ -122,7 +132,7 @@ app.get('/api/image-proxy', apiLimiter, async (req, res) => {
                 timeout: 3000,
                 headers: {
                     'User-Agent': 'OceanGuardAI/1.0',
-                    'Referer': 'http://localhost:8080/'
+                    'Referer': 'http://localhost:8081/'
                 }
             });
 
@@ -236,7 +246,7 @@ async function fetchImageStream(url) {
     timeout: 3000,
     headers: {
       'User-Agent': 'OceanGuardAI/1.0',
-      Referer: 'http://localhost:8080/'
+      Referer: 'http://localhost:8081/'
     }
   });
 

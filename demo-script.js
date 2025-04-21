@@ -45,7 +45,7 @@ class OceanWasteAI {
     }
   constructor() {
     // Configuration
-    this.apiBase = `${window.location.protocol}//${window.location.hostname}:8080/api`;
+    this.apiBase = `${window.location.protocol}//${window.location.hostname}:8081/api`;
     this.maxUploadSize = 5 * 1024 * 1024 // 5MB
     this.maxUploads = 10
 
