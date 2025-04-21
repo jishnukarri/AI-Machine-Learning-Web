@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
@@ -7,24 +8,23 @@ const app = express();
 const upnp = require('nat-upnp');
 const client = upnp.createClient();
 
+// Configuration from environment variables
+const PORT = process.env.PORT || 8081;
+const API_KEY = process.env.GOOGLE_API_KEY;
+const CX = process.env.GOOGLE_CX;
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-const nodeEnv = 'production';
-// Configuration Constants
-const PORT = 8081;
-const API_KEY = 'AIzaSyDnSyaqUG2k1uknqZpjCLhCvnq2VXTvIws';
-const CX = '351cf2068915748d9';
-const ALLOWED_ORIGINS = [
-  'http://localhost:8081',
-  'http://localhost:5000',
-  'http://192.168.0.22:5000',
-  'http://192.168.0.3:5000',
-  'http://86.23.213.26:5000',
-  'http://jishnukarri.me:5000/',
-  '*',
-  nodeEnv === 'production' && 'http://aqua.jishnukarri.me:5000/'
-]
+// Allowed origins from environment variable (comma-separated)
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : [
+      'http://localhost:8081',
+      'http://localhost:5000',
+      'http://192.168.0.22:5000',
+      'http://192.168.0.3:5000'
+    ];
 
-// TensorFlow.js compatible image types (as per tfjs documentation)
+// TensorFlow.js compatible image types
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|bmp|gif|webp)$/i;
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
@@ -33,6 +33,10 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/gif',
   'image/webp'
 ]);
+
+// Validate required environment variables
+if (!API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
+if (!CX) throw new Error('GOOGLE_CX environment variable is required');
 
 // Security Middleware
 app.use(helmet({
@@ -46,20 +50,11 @@ app.use(helmet({
 app.use(express.json({ limit: '10kb' }));
 
 // CORS Configuration
-// Replace existing CORS middleware with:
-// In your Node.js server (index.js)
 app.use((req, res, next) => {
-  const allowedOrigins = [
-    'http://aqua.jishnukarri.me:5000',
-    'http://aqua.jishnukarri.me:8081',
-    'http://192.168.0.22:5000',
-    'http://86.23.213.26:5000',
-    'http://aqua.jishnukarri.me',
-    'http://aqua.jishnukarri.me',
-  ];
+  const origin = req.headers.origin;
   
-  if (allowedOrigins.includes(req.headers.origin)) {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -69,6 +64,7 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
+
 // Rate Limiting
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -78,7 +74,6 @@ const apiLimiter = rateLimit({
 });
 
 // API Routes
-// In index.js, update the /api/search route
 app.get('/api/search', apiLimiter, async (req, res) => {
     try {
         const query = validateSearchQuery(req.query.q);
@@ -97,21 +92,18 @@ app.get('/api/search', apiLimiter, async (req, res) => {
             timeout: 5000
         });
 
-        // Check if Google API returned an error
         if (response.data.error) {
             throw new Error(response.data.error.message || 'Google API Error');
         }
 
-        // Ensure items exist, default to empty array
         const items = response.data.items || [];
         
-        // Change this in your /api/search endpoint
         res.json({
             success: true,
             results: items.map(item => ({
-                url: item.link,  // Full size image URL
+                url: item.link,
                 title: item.title,
-                thumbnail: item.image?.thumbnailLink,  // Thumbnail URL
+                thumbnail: item.image?.thumbnailLink,
                 context: item.image?.contextLink
             }))
         });
@@ -123,18 +115,18 @@ app.get('/api/search', apiLimiter, async (req, res) => {
         });
     }
 });
+
 app.get('/api/image-proxy', apiLimiter, async (req, res) => {
     try {
         const imageUrl = validateImageUrl(req.query.url);
         
-        // Try the original URL first
         try {
             const response = await axios.get(imageUrl, {
                 responseType: 'stream',
                 timeout: 3000,
                 headers: {
                     'User-Agent': 'OceanGuardAI/1.0',
-                    'Referer': 'http://localhost:8081/'
+                    'Referer': `http://localhost:${PORT}/`
                 }
             });
 
@@ -152,9 +144,8 @@ app.get('/api/image-proxy', apiLimiter, async (req, res) => {
         } catch (originalError) {
             console.log(`Original image failed, trying thumbnail fallback: ${imageUrl}`);
             
-            // If original fails, try to extract thumbnail URL if it's a Google image
             if (imageUrl.includes('googleusercontent.com')) {
-                const thumbUrl = imageUrl.replace(/=.*$/, '=s300'); // Medium thumbnail
+                const thumbUrl = imageUrl.replace(/=.*$/, '=s300');
                 const thumbResponse = await axios.get(thumbUrl, {
                     responseType: 'stream',
                     timeout: 3000
@@ -194,12 +185,10 @@ function validateImageUrl(url) {
   try {
     const parsed = new URL(url);
     
-    // Validate protocol
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       throw new Error('Invalid protocol');
     }
     
-    // Validate file extension
     if (!ALLOWED_IMAGE_EXTENSIONS.test(parsed.pathname)) {
       throw new Error('Unsupported image format');
     }
@@ -210,78 +199,31 @@ function validateImageUrl(url) {
   }
 }
 
-// Service Functions
-async function fetchGoogleImages(query) {
-  const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
-    params: {
-      key: API_KEY,
-      cx: CX,
-      q: query,
-      searchType: 'image',
-      num: 6,
-      safe: 'active',
-      imgSize: 'medium'
-    },
-    timeout: 5000
-  });
-
-  return {
-    query,
-    results: response.data.items?.map(item => ({
-      link: item.link,
-      title: item.title,
-      thumbnail: item.image?.thumbnailLink,
-      context: item.image?.contextLink,
-      mime: item.mime,
-      dimensions: {
-        width: item.image?.width,
-        height: item.image?.height
-      }
-    })) || [],
-    meta: response.data.searchInformation
-  };
-}
-
-async function fetchImageStream(url) {
-  const response = await axios.get(url, {
-    responseType: 'stream',
-    timeout: 3000,
-    headers: {
-      'User-Agent': 'OceanGuardAI/1.0',
-      Referer: 'http://localhost:8081/'
-    }
-  });
-
-  // Validate content type
-  const contentType = response.headers['content-type']?.split(';')[0];
-  if (!ALLOWED_MIME_TYPES.has(contentType)) {
-    throw new Error(`Unsupported image type: ${contentType}`);
-  }
-
-  return {
-    data: response.data,
-    contentType: response.headers['content-type']
-  };
-}
-
 // Error Handling
-function handleApiError(res, error) {
-  console.error(`API Error: ${error.message}`);
-  const statusCode = error.response?.status || 500;
-  const message = error.response?.data?.error?.message || error.message;
+app.use((req, res) => res.status(404).json({ success: false, error: 'Endpoint not found' }));
+app.use((err, req, res, next) => {
+  console.error(`API Error: ${err.message}`);
+  const statusCode = err.response?.status || 500;
+  const message = err.response?.data?.error?.message || err.message;
   res.status(statusCode).json({
     success: false,
     error: message,
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+    ...(NODE_ENV === 'development' && { stack: err.stack })
   });
-}
+});
+
+// Health check endpoint
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
 
 // Server Initialization
-app.use((req, res) => res.status(404).json({ success: false, error: 'Endpoint not found' }));
-app.use((err, req, res, next) => handleApiError(res, err));
-
-// Keep existing app.listen()
-app.listen(PORT,'0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server operational on port ${PORT}`);
   console.log(`🌐 Access endpoints at: http://localhost:${PORT}/api`);
+  console.log(`⚙️  Environment: ${NODE_ENV}`);
 });
