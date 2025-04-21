@@ -9,20 +9,20 @@ const upnp = require('nat-upnp');
 const client = upnp.createClient();
 
 // Configuration from environment variables
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 3000; // Render provides PORT automatically
 const API_KEY = process.env.GOOGLE_API_KEY;
 const CX = process.env.GOOGLE_CX;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Allowed origins from environment variable (comma-separated)
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : [
-      'http://localhost:8081',
-      'http://localhost:5000',
-      'http://192.168.0.22:5000',
-      'http://192.168.0.3:5000'
-    ];
+const allowedOrigins = [
+  'http://aqua.jishnukarri.me:5000',
+  'http://aqua.jishnukarri.me:8081',
+  'http://192.168.0.22:5000',
+  'http://86.23.213.26:5000',
+  'http://aqua.jishnukarri.me',
+  'http://aqua.jishnukarri.me',
+];
 
 // TensorFlow.js compatible image types
 const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|bmp|gif|webp)$/i;
@@ -49,21 +49,10 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: '10kb' }));
 
-// CORS Configuration
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
-  res.header('Access-Control-Max-Age', '3600');
-  
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ['GET', 'OPTIONS']
+}));
 
 // Rate Limiting
 const apiLimiter = rateLimit({
@@ -223,7 +212,5 @@ app.get('/healthz', (req, res) => {
 
 // Server Initialization
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server operational on port ${PORT}`);
-  console.log(`🌐 Access endpoints at: http://localhost:${PORT}/api`);
-  console.log(`⚙️  Environment: ${NODE_ENV}`);
+  console.log(`Server ready on internal port ${PORT}`);
 });
