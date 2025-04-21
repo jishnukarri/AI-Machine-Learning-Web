@@ -54,6 +54,8 @@ app.use((req, res, next) => {
     'http://aqua.jishnukarri.me:8081',
     'http://192.168.0.22:5000',
     'http://86.23.213.26:5000',
+    'http://aqua.jishnukarri.me',
+    'http://aqua.jishnukarri.me',
   ];
   
   if (allowedOrigins.includes(req.headers.origin)) {
